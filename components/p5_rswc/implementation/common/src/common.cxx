@@ -3,11 +3,15 @@
 #include <string>
 #include <utility>
 #include <typeinfo>
+#include <stdexcept>
 #include <exception>
 #include <functional>
 #include <string_view>
+#include <forward_list>
 
 #include <cxxabi.h>
+
+#include <esp_err.h>
 
 #include <fmt/format.h>
 
@@ -15,6 +19,25 @@
 
 
 namespace p5::rswc::implementation_::common {
+namespace sdk::private_ {
+
+    ::std::string_view error_name(ErrorCode error_code) noexcept(true) {
+        auto &&text_ = ::std::string_view{::esp_err_to_name(error_code)};
+        if (text_.empty()) return "UNKNOWN ERROR";
+        return ::std::forward<decltype(text_)>(text_);
+    }
+
+    ErrorCode check_or_throw(ErrorCode error_code) noexcept(false) {
+        if (ESP_OK != error_code) {
+            auto &&name_ = ::std::string_view{::esp_err_to_name(error_code)};
+            if (name_.empty()) throw ::std::runtime_error{::fmt::format("error code = {:#x}", error_code)};
+            throw ::std::runtime_error{::fmt::format("{}, error code = {:#x}", ::std::forward<decltype(name_)>(name_), error_code)};
+        }
+        return error_code;
+    }
+
+} // namespace sdk::private_
+
 namespace exception_handling {
 
     void walk(::std::exception const &exception, ::std::function<void(::std::exception_ptr const &)> const &delegate) noexcept(false) {
@@ -22,7 +45,6 @@ namespace exception_handling {
     }
 
     void walk(::std::exception_ptr const &exception, ::std::function<void(::std::exception_ptr const &)> const &delegate) noexcept(false) {
-        delegate(exception);
         if (! static_cast<bool>(exception)) return;
         try { ::std::rethrow_exception(exception); }
         catch(::std::exception const &exception) {
@@ -30,6 +52,7 @@ namespace exception_handling {
             catch(...) { walk(::std::current_exception(), delegate); }
         }
         catch(...) {}
+        delegate(exception);
     }
 
     ::std::string details(::std::exception const &exception) noexcept(false) {

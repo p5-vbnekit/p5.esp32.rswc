@@ -33,4 +33,6 @@ target_link_options("${_namespace}" PRIVATE "-Wl,-no-undefined")
 
 target_link_libraries("${_namespace}" PRIVATE "fmt::fmt")
 
+target_link_libraries("${_namespace}" PRIVATE "idf::esp_common")
+
 target_include_directories("${_namespace}" PUBLIC "include")

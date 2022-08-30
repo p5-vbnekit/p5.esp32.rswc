@@ -3,17 +3,11 @@
 #include <string_view>
 
 
-namespace p5::rswc::implementation_ {
-namespace romfs {
+namespace p5::rswc::implementation_::romfs {
 
-    struct Class final {
-        Class() noexcept(false);
+    void initialize() noexcept(false);
+    void deinitialize() noexcept(false);
 
-        ::std::string_view const & operator () (::std::string_view const &key) const noexcept(false);
-    };
+    ::std::string_view const & get(::std::string_view const &) noexcept(false);
 
-} // namespace romfs
-
-    using RomFs = romfs::Class;
-
-} // namespace p5::rswc::implementation_
+} // namespace p5::rswc::implementation_::romfs

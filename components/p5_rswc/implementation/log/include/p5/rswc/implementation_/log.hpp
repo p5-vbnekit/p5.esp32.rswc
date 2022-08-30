@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string>
 #include <utility>
+#include <string>
+#include <string_view>
 
 
 namespace p5::rswc::implementation_ {
@@ -17,20 +18,24 @@ namespace log_ {
 
     void routine(Level, char const *) noexcept(false);
 
-    inline static auto routine(Level level, ::std::string const &message) noexcept(false) {
-        return routine(level, message.c_str());
+    template <class Level> inline static auto routine(Level &&level, ::std::string const &message) noexcept(false) {
+        return log_::routine(::std::forward<Level>(level), message.c_str());
+    }
+
+    template <class Level> inline static auto routine(Level &&level, ::std::string_view const &message) noexcept(false) {
+        return log_::routine(::std::forward<Level>(level), ::std::string{message});
     }
 
 } // namespace log_
 
     using LogLevel = log_::Level;
 
-    template <class levelT, class messageT> inline static auto log(levelT &&level, messageT &&message) noexcept(false) {
-        return log_::routine(::std::forward<levelT>(level), ::std::forward<messageT>(message));
+    template <class Level, class Message> inline static auto log(Level &&level, Message &&message) noexcept(false) {
+        return log_::routine(::std::forward<Level>(level), ::std::forward<Message>(message));
     }
 
-    template <LogLevel level = log_::Level::Info, class messageT> inline static auto log(messageT &&message) noexcept(false) {
-        return log_::routine(level, ::std::forward<messageT>(message));
+    template <LogLevel level = log_::Level::Info, class Message> inline static auto log(Message &&message) noexcept(false) {
+        return log_::routine(level, ::std::forward<Message>(message));
     }
 
 } // namespace p5::rswc::implementation_

@@ -20,7 +20,7 @@ menu "p5_rwsc configuration"
     if P5_RWSC_ENABLE_WIFI
         config P5_RWSC_DEFAULT_WIFI_SSID_PREFIX
             string "Default WiFi SSID prefix"
-            default "p5-esp32-rswc"
+            default "p5 esp32 rswc"
             help
                 Default SSID (network name).
 

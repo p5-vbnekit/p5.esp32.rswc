@@ -1,16 +1,16 @@
 #include <utility>
 #include <exception>
 
-#include <fmt/core.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
 #include <esp_err.h>
 #include <esp_system.h>
 
+#include <fmt/format.h>
+
 #include <p5/rswc/implementation_/log.hpp>
-#include <p5/rswc/implementation_/romfs.hpp>
+#include <p5/rswc/implementation_/dirty.hpp>
 #include <p5/rswc/implementation_/common.hpp>
 
 #include <p5/rswc/implementation.hpp>
@@ -19,12 +19,7 @@
 namespace p5::rswc {
 namespace implementation_ {
 
-    inline static auto routine() noexcept(false) {
-        RomFs const romfs_;
-        log(::fmt::format("hello, world! {} = {}", 42, 42));
-        log(::fmt::format("romfs.image/ssl/public.pem: {}", romfs_("ssl/public.pem")));
-        log(::fmt::format("romfs.image/ssl/private.pem: {}", romfs_("ssl/private.pem")));
-    }
+    inline static auto routine() noexcept(false) { dirty(); }
 
 } // namespace implementation_
 
@@ -34,7 +29,7 @@ namespace implementation_ {
         try {
             try { routine(); }
             catch(...) { common::exception_handling::walk(::std::current_exception(), [] (auto &&exception) { log<LogLevel::Error>(
-                ::fmt::format("caught unhandled {}", common::exception_handling::details(::std::forward<decltype(exception)>(exception)))
+                common::exception_handling::details(::std::forward<decltype(exception)>(exception))
             ); }); }
         }
 

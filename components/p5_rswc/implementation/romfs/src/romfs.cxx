@@ -2,6 +2,7 @@
 
 #include <string>
 #include <utility>
+#include <optional>
 #include <charconv>
 #include <stdexcept>
 #include <algorithm>
@@ -19,26 +20,27 @@
 
 
 namespace p5::rswc::implementation_::romfs {
+namespace private_ {
 
-    struct Private_ final {
-
-        inline static auto const & instance() noexcept(false) {
-            static auto const instance_ = Private_{};
+    struct Storage_ final {
+        inline static auto & holder() noexcept(true) {
+            static ::std::optional<Storage_ const> instance_;
             return instance_;
         }
 
         inline auto const & map() const noexcept(true) { return map_; }
 
+        Storage_() noexcept(false);
+
     private:
         ::std::forward_list<::std::string> keys_;
         ::std::unordered_map<::std::string_view, ::std::string_view> map_;
 
-        Private_() noexcept(false);
-        Private_(Private_ &&) = delete;
-        Private_(Private_ const &) = delete;
+        Storage_(Storage_ &&) = delete;
+        Storage_(Storage_ const &) = delete;
     };
 
-    inline Private_::Private_() noexcept(false) {
+    inline Storage_::Storage_() noexcept(false) {
         auto const image_view_ = [] () {
             extern char const end_[] asm("p5_rswc_romfs_image_layout_end");
             extern char const begin_[] asm("p5_rswc_romfs_image_layout_begin");
@@ -140,11 +142,27 @@ namespace p5::rswc::implementation_::romfs {
         ::cJSON_Delete(json_header_);
     }
 
-    Class::Class() noexcept(false) { Private_::instance(); }
+} // namespace private_
 
-    ::std::string_view const & Class::operator () (::std::string_view const &key) const noexcept(false) {
+    void initialize() noexcept(false) {
+        auto &holder_ = private_::Storage_::holder();
+        if (static_cast<bool>(holder_)) throw ::std::runtime_error{"already initialized"};
+        holder_.emplace();
+    }
+
+    void deinitialize() noexcept(false) {
+        auto &holder_ = private_::Storage_::holder();
+        if (! static_cast<bool>(holder_)) throw ::std::runtime_error{"not initialized"};
+        holder_.reset();
+    }
+
+    ::std::string_view const & get(::std::string_view const &key) noexcept(false) {
         if (key.empty()) throw ::std::invalid_argument{"non-empty key expected"};
-        auto const &map_ = Private_::instance().map();
+        auto const &map_ = [] () {
+            auto const &storage_ = private_::Storage_::holder();
+            if (! static_cast<bool>(storage_)) throw ::std::runtime_error{"not initialized"};
+            return storage_->map();
+        } ();
         auto const iterator_ = map_.find(key);
         if (iterator_ == map_.end()) throw ::std::runtime_error{::fmt::format("key not found: {}", key)};
         return iterator_->second;
