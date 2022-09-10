@@ -21,7 +21,7 @@ add_library("${_namespace}" STATIC
 
 add_library("${_parent_namespace}::${_base_name}" ALIAS "${_namespace}")
 
-target_compile_features("${_namespace}" PRIVATE "cxx_std_17")
+target_compile_features("${_namespace}" PRIVATE "cxx_std_20")
 
 set_target_properties("${_namespace}" PROPERTIES
     "C_VISIBILITY_PRESET" "hidden"

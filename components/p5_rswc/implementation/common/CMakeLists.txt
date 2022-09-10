@@ -16,11 +16,20 @@ get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.esp32.rwsc.namespac
 
 add_library("${_namespace}" STATIC
     "src/common.cxx" "include/p5/rswc/implementation_/common.hpp"
+    "src/common.sdk.cxx" "include/p5/rswc/implementation_/common/sdk.hpp"
+    "src/common.coro.cxx" "include/p5/rswc/implementation_/common/coro.hpp"
+    "src/common.notifier.cxx" "include/p5/rswc/implementation_/common/notifier.hpp"
+    "src/common.exception_handling.cxx" "include/p5/rswc/implementation_/common/exception_handling.hpp"
+    "src/common.utils.cxx" "include/p5/rswc/implementation_/common/utils.hpp"
+    "include/p5/rswc/implementation_/common/coro/future.hpp"
+    "include/p5/rswc/implementation_/common/coro/task.hpp"
+    "include/p5/rswc/implementation_/common/coro/private_.hpp"
+    "include/p5/rswc/implementation_/common/notifier/fwd.hpp"
 )
 
 add_library("${_parent_namespace}::${_base_name}" ALIAS "${_namespace}")
 
-target_compile_features("${_namespace}" PRIVATE "cxx_std_17")
+target_compile_features("${_namespace}" PUBLIC "cxx_std_20")
 
 set_target_properties("${_namespace}" PROPERTIES
     "C_VISIBILITY_PRESET" "hidden"

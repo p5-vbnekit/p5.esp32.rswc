@@ -19,6 +19,8 @@
 #include <esp_random.h>
 #include <esp_http_server.h>
 
+#include <freertos/FreeRTOS.h>
+
 #include <fmt/format.h>
 
 #include <sdkconfig.h>
@@ -109,8 +111,7 @@ namespace trimmer {
                     ));
                 }
 
-                static ::httpd_handle_t http_server_handle_ = NULL;
-                common::utils::unused(http_server_handle_);
+                [[maybe_unused]] static ::httpd_handle_t http_server_handle_ = NULL;
 
                 auto const &&nvs_handle_ = private_::action("initializing non-volatile storage", [&finally] () {
                     if constexpr (true) {
@@ -239,6 +240,20 @@ namespace trimmer {
 
                 log<LogLevel::Info>(::fmt::format("wifi access point ssid: {}", wifi_ap_ssid_, wifi_ap_ssid_));
 
+                ::std::array<common::coro::Future<::std::string_view>, 2> futures_;
+                auto task_ = [&futures_] () -> common::coro::Task<::std::string_view> {
+                    for (auto &future_: futures_) log<LogLevel::Info>(::fmt::format("[task]: {}", co_await future_));
+                    co_return "ok";
+                } ();
+
+                task_.start();
+                task_.subscribe([&task_] () { log<LogLevel::Info>(::fmt::format("task finished: {}", task_.result())); });
+
+                futures_[1].set_result("bye, world!");
+                futures_[0].set_result("hello, world!");
+
+                log<LogLevel::Info>(::fmt::format("task result: {}", task_.result()));
+
                 private_::action("SDK ::esp_netif_init", [] () { common::sdk::check_or_throw(::esp_netif_init()); });
                 finally([] () { private_::action(
                     "SDK ::esp_netif_deinit", [] () { common::sdk::check_or_throw(::esp_netif_deinit()); }
@@ -252,14 +267,14 @@ namespace trimmer {
 #if 0
 #ifdef CONFIG_P5_RWSC_ENABLE_WIFI
                 if constexpr (static_cast<bool>(CONFIG_P5_RWSC_ENABLE_WIFI)) {
-                    ESP_ERROR_CHECK(::esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &server));
-                    ESP_ERROR_CHECK(::esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &server));
+                    common::sdk::check_or_throw(::esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &server));
+                    common::sdk::check_or_throw(::esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &server));
                 }
 #endif // CONFIG_P5_RWSC_ENABLE_WIFI
 #ifdef CONFIG_P5_RWSC_ENABLE_ETHERNET
                 if constexpr (static_cast<bool>(CONFIG_P5_RWSC_ENABLE_WIFI)) {
-                    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &connect_handler, &server));
-                    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ETHERNET_EVENT_DISCONNECTED, &disconnect_handler, &server));
+                    common::sdk::check_or_throw(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &connect_handler, &server));
+                    common::sdk::check_or_throw(esp_event_handler_register(ETH_EVENT, ETHERNET_EVENT_DISCONNECTED, &disconnect_handler, &server));
                 }
 #endif // CONFIG_P5_RWSC_ENABLE_ETHERNET
 
