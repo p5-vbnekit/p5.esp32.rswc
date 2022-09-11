@@ -20,6 +20,8 @@ get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.esp32.rwsc.namespac
 
 add_library("${_namespace}" STATIC
     "src/implementation.cxx" "include/p5/rswc/implementation.hpp"
+    "src/main_task.cxx" "src/main_task.hpp"
+    "src/event_loop.cxx" "src/event_loop.hpp"
 )
 
 add_library("${_parent_namespace}::${_name}" ALIAS "${_namespace}")
@@ -36,7 +38,7 @@ set_target_properties("${_namespace}" PROPERTIES
 target_link_options("${_namespace}" PRIVATE "-Wl,-no-undefined")
 
 target_link_libraries("${_namespace}" PRIVATE "fmt::fmt")
-target_link_libraries("${_namespace}" PRIVATE "idf::esp_common" "idf::esp_system")
+target_link_libraries("${_namespace}" PRIVATE "idf::esp_common" "idf::esp_system" "idf::esp_event")
 target_link_libraries("${_namespace}" PRIVATE
     "${_parent_namespace}::dirty"
     "${_parent_namespace}::romfs" "${_parent_namespace}::log" "${_parent_namespace}::common"

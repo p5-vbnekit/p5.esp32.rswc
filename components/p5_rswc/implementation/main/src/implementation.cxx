@@ -1,5 +1,9 @@
+#include <memory>
+#include <string>
 #include <utility>
 #include <exception>
+#include <stdexcept>
+#include <string_view>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -13,38 +17,81 @@
 #include <p5/rswc/implementation_/dirty.hpp>
 #include <p5/rswc/implementation_/common.hpp>
 
+#include "main_task.hpp"
+
 #include <p5/rswc/implementation.hpp>
 
 
 namespace p5::rswc {
 namespace implementation_ {
 
-    inline static auto routine() noexcept(false) { dirty(); }
+    inline static auto invoke() noexcept(false) {
+        common::coro::set_exception_handler([] (auto &&exception, auto &&location) {
+            try {
+                if (location.empty()) log<LogLevel::Error>("unexpected exception");
+                else log<LogLevel::Error>(::fmt::format("unexpected exception in \"{}\"", ::std::forward<decltype(location)>(location)));
+            }
+            catch (...) {}
+            if (exception) try { ::std::rethrow_exception(exception); } catch (...) { ::std::terminate(); }
+            ::std::terminate();
+        });
+
+        static auto task_ = main_task::make();
+
+        task_.subscribe([] () {
+            try {
+                log<LogLevel::Info>("main task finished");
+
+                try { task_.result(); }
+                catch (...) { ::std::throw_with_nested(::std::runtime_error{"main task failed"}); }
+
+                for (auto counter_ = 3; 0 < counter_; counter_--) {
+                    log<LogLevel::Verbose>(::fmt::format("Restarting in {} seconds...", counter_));
+                    ::vTaskDelay(1000 / portTICK_PERIOD_MS);
+                }
+
+                log<LogLevel::Debug>("Restarting now ...");
+                ::esp_restart();
+            }
+            
+            catch (...) { ::std::terminate(); }
+        });
+
+        task_.start();
+
+        main_task::post_test_event();
+    }
+
+    inline static auto terminate_handler() noexcept(true) {
+        try {
+            if (auto &&exception_ = ::std::current_exception()) {
+                log<LogLevel::Error>("terminating on error");
+                common::exception_handling::walk(::std::forward<decltype(exception_)>(exception_), [] (auto &&exception) {
+                    log<LogLevel::Error>(common::exception_handling::details(::std::forward<decltype(exception)>(exception)));
+                });
+            }
+
+            else log<LogLevel::Error>("terminating on unknown error");
+
+            log<LogLevel::Verbose>("Aborting in 6 seconds...");
+            ::vTaskDelay(3000 / portTICK_PERIOD_MS);
+            log<LogLevel::Debug>("Aborting now...");
+        } catch (...) {}
+
+        ESP_ERROR_CHECK(ESP_FAIL);
+        ::std::abort();
+    }
 
 } // namespace implementation_
 
     void implementation() noexcept(true) {
-        using namespace implementation_;
-
-        try {
-            try { routine(); }
-            catch(...) { common::exception_handling::walk(::std::current_exception(), [] (auto &&exception) { log<LogLevel::Error>(
-                common::exception_handling::details(::std::forward<decltype(exception)>(exception))
-            ); }); }
-        }
-
-        catch(...) {
-            ESP_ERROR_CHECK(ESP_FAIL);
-            ::std::terminate();
-        }
-
-        for (auto counter_ = 10; 0 < counter_; counter_--) {
-            log<LogLevel::Verbose>(::fmt::format("Restarting in {} seconds...", counter_));
-            ::vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-
-        log<LogLevel::Debug>("Restarting now ...");
-        ::esp_restart();
+        static auto protector_ = false;
+        if (protector_) try { throw ::std::logic_error{::fmt::format("repeated call of {}", __PRETTY_FUNCTION__)}; }
+        catch (...) { implementation_::terminate_handler(); }
+        protector_ = true;
+        ::std::set_terminate(implementation_::terminate_handler);
+        try { implementation_::invoke(); }
+        catch(...) { ::std::terminate(); }
     }
 
 } // namespace p5::rswc

@@ -59,35 +59,6 @@ namespace private_ {
         }
     }
 
-namespace trimmer {
-
-        inline constexpr auto const default_spaces = ::std::string_view{" \t\n\f\r\v"};
-
-        inline constexpr static auto const left(
-            ::std::string_view const &source, ::std::string_view const &spaces = default_spaces
-        ) noexcept(true) {
-            if (source.empty() || spaces.empty()) return source;
-            auto const offset_ = source.find_first_not_of(spaces);
-            if (offset_ == source.npos) return ::std::string_view{source.data(), 0};
-            return ::std::string_view{source.begin() + offset_, source.end()};
-        }
-
-        inline constexpr static auto const right(
-            ::std::string_view const &source, ::std::string_view const &spaces = default_spaces
-        ) noexcept(true) {
-            if (source.empty() || spaces.empty()) return source;
-            auto const offset_ = source.find_last_not_of(spaces);
-            if (offset_ == source.npos) return ::std::string_view{source.data(), 0};
-            return ::std::string_view{source.begin(), 1 + offset_};
-        }
-
-        inline constexpr static auto const both(
-            ::std::string_view const &source, ::std::string_view const &spaces = default_spaces
-        ) noexcept(true) {
-            return right(left(source), spaces);
-        }
-
-} // namespace trimmer
 } // namespace private_
 
     void routine() noexcept(false) {
@@ -211,9 +182,9 @@ namespace trimmer {
                                 constexpr auto const separator_size_ = separator_.size();
                                 static_assert(max_size_ > separator_size_ + suffix_size_);
                                 constexpr auto const max_prefix_size_ = max_size_ - (separator_size_ + suffix_size_);
-                                constexpr auto const config_ = private_::trimmer::both(::std::string_view{CONFIG_P5_RWSC_DEFAULT_WIFI_SSID_PREFIX});
+                                constexpr auto const config_ = common::utils::trimmer::both(::std::string_view{CONFIG_P5_RWSC_DEFAULT_WIFI_SSID_PREFIX});
                                 if (config_.empty() || (max_prefix_size_ >= config_.size())) return config_;
-                                return private_::trimmer::right(::std::string_view{config_.data(), max_prefix_size_});
+                                return common::utils::trimmer::right(::std::string_view{config_.data(), max_prefix_size_});
                             } ();
                             if constexpr (! prefix_.empty()) text_ = ::fmt::format("{}{}{}", prefix_, separator_, ::std::forward<decltype(text_)>(text_));
                         }

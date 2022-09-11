@@ -36,7 +36,7 @@ namespace private_ {
 
         inline constexpr auto exception() const noexcept(true) { return context_.exception; }
 
-        template <class Result> inline constexpr auto set_result() noexcept(false) requires(::std::is_same_v<T, void>) {
+        inline constexpr auto set_result() noexcept(false) requires(::std::is_same_v<T, void>) {
             if (context_.exception) throw ::std::runtime_error{"exception already assigned"};
             if (context_.result.has_value()) throw ::std::runtime_error{"result already assigned"};
             context_.result = true;
