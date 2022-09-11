@@ -26,16 +26,6 @@ namespace p5::rswc {
 namespace implementation_ {
 
     inline static auto invoke() noexcept(false) {
-        common::coro::set_exception_handler([] (auto &&exception, auto &&location) {
-            try {
-                if (location.empty()) log<LogLevel::Error>("unexpected exception");
-                else log<LogLevel::Error>(::fmt::format("unexpected exception in \"{}\"", ::std::forward<decltype(location)>(location)));
-            }
-            catch (...) {}
-            if (exception) try { ::std::rethrow_exception(exception); } catch (...) { ::std::terminate(); }
-            ::std::terminate();
-        });
-
         static auto task_ = main_task::make();
 
         task_.subscribe([] () {

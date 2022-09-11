@@ -1,10 +1,9 @@
-#include <cstdint>
-
 #include <memory>
 #include <string>
 #include <iostream>
 #include <coroutine>
 #include <exception>
+#include <stdexcept>
 #include <string_view>
 #include <unordered_map>
 
@@ -37,15 +36,20 @@ namespace private_ {
 
     inline static auto default_exception_handler_(::std::exception_ptr const &exception, ::std::string_view const &location) noexcept(true) {
         try {
-            if (exception) try { ::std::rethrow_exception(exception); } catch(...) {
-                if (location.empty()) ::std::cerr << "exception caught" << ::std::endl << ::std::flush;
-                else ::std::cerr << "exception caught in \"" << location << "\"" << ::std::endl << ::std::flush;
-                exception_handling::walk(exception, [] (auto &&exception) { ::std::cerr << exception_handling::details(
-                    ::std::forward<decltype(exception)>(exception)
-                ) << ::std::endl << ::std::flush; });
-            }
-        }
-        catch (...) { ::std::terminate(); }
+            constexpr static auto const * const prefix_ = "unexpected exception in";
+            auto &&exception_ = ::std::logic_error{::std::string{
+                location.empty() ? ::fmt::format("{} coro module", prefix_) : ::fmt::format("{} in \"{}\"", prefix_, location)
+            }};
+            try {
+                if (exception) try { ::std::rethrow_exception(exception); }
+                catch (...) { ::std::throw_with_nested(::std::forward<decltype(exception_)>(exception_)); }
+                throw exception_;
+            } catch (...) { ::std::terminate(); }
+        } catch (...) {}
+
+        if (exception) try { ::std::rethrow_exception(exception); } catch (...) { ::std::terminate(); }
+
+        ::std::terminate();
     }
 
     void set_exception_handler(ExceptionHandler &&handler) noexcept(false) {
