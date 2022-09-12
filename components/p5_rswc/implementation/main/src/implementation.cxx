@@ -1,9 +1,9 @@
+#include <mutex>
 #include <memory>
-#include <string>
+#include <thread>
 #include <utility>
 #include <exception>
 #include <stdexcept>
-#include <string_view>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -18,6 +18,8 @@
 #include <p5/rswc/implementation_/common.hpp>
 
 #include "main_task.hpp"
+#include "event_loop.hpp"
+#include "logged_action.hpp"
 
 #include <p5/rswc/implementation.hpp>
 
@@ -26,62 +28,90 @@ namespace p5::rswc {
 namespace implementation_ {
 
     inline static auto invoke() noexcept(false) {
-        static auto task_ = main_task::make();
+        if constexpr (true) {
+            static auto protector_ = false;
+            if (protector_) throw ::std::logic_error{::fmt::format("repeated call of {}", __PRETTY_FUNCTION__)};
+            protector_ = true;
+        }
 
-        task_.subscribe([] () {
+        auto task_ = [] () {
+            auto &&task_ = [] () -> common::coro::Task<bool> {
+                logged_action::execute("initializing event loop", event_loop::initialize);
+                auto result_ = false;
+                try { co_await logged_action::wrap_awaitable("main task", main_task::make()); result_ = true; }
+                catch (...) { common::exception_handling::walk(::std::current_exception(), [] (auto &&exception) {
+                    log<LogLevel::Warning>(common::exception_handling::details(::std::forward<decltype(exception)>(exception)));
+                }); }
+                co_return result_;
+            } ();
+            return ::std::make_shared<::std::decay_t<decltype(task_)>>(::std::forward<decltype(task_)>(task_));
+        } ();
+
+        task_->subscribe([task_] () {
             try {
-                log<LogLevel::Info>("main task finished");
-
-                try { task_.result(); }
-                catch (...) { ::std::throw_with_nested(::std::runtime_error{"main task failed"}); }
-
-                for (auto counter_ = 3; 0 < counter_; counter_--) {
-                    log<LogLevel::Verbose>(::fmt::format("Restarting in {} seconds...", counter_));
-                    ::vTaskDelay(1000 / portTICK_PERIOD_MS);
-                }
-
-                log<LogLevel::Debug>("Restarting now ...");
-                ::esp_restart();
+                auto mutex_ = ::std::make_shared<::std::mutex>();
+                [[maybe_unused]] auto const lock_ = ::std::unique_lock<::std::decay_t<decltype(*mutex_)>>{*mutex_};
+                ::std::thread{[mutex_, task_] () {
+                    try {
+                        ::std::unique_lock<::std::decay_t<decltype(*mutex_)>>{*mutex_};
+                        if (event_loop::instance()) logged_action::execute("deinitializing event loop", event_loop::deinitialize);
+                        if (! task_->result()) throw ::std::runtime_error{"main task failed"};
+                        for (auto counter_ = 3; 0 < counter_; counter_--) {
+                            log<LogLevel::Verbose>(::fmt::format("Restarting in {} seconds...", counter_));
+                            ::vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        }
+                        log<LogLevel::Debug>("Restarting now ...");
+                        ::esp_restart();
+                    }
+                    catch (...) { ::std::terminate(); }
+                }}.detach();
             }
-            
             catch (...) { ::std::terminate(); }
         });
 
-        task_.start();
+        task_->start();
 
         main_task::post_test_event();
     }
 
-    inline static auto terminate_handler() noexcept(true) {
-        try {
-            if (auto &&exception_ = ::std::current_exception()) {
-                log<LogLevel::Error>("terminating on error");
-                common::exception_handling::walk(::std::forward<decltype(exception_)>(exception_), [] (auto &&exception) {
-                    log<LogLevel::Error>(common::exception_handling::details(::std::forward<decltype(exception)>(exception)));
-                });
+    inline static auto make_terminate_handler() noexcept(true) {
+        static auto flag_ = false;
+
+        return [] () {
+            try {
+                if (auto &&exception_ = ::std::current_exception()) {
+                    log<LogLevel::Error>(::fmt::format(
+                        "terminate caused with error, thread = {}", static_cast<void const *>(::xTaskGetCurrentTaskHandle())
+                    ));
+                    common::exception_handling::walk(::std::forward<decltype(exception_)>(exception_), [] (auto &&exception) {
+                        log<LogLevel::Error>(common::exception_handling::details(::std::forward<decltype(exception)>(exception)));
+                    });
+                }
+
+                else log<LogLevel::Error>(::fmt::format(
+                    "terminate caused with error, thread = {}", static_cast<void const *>(::xTaskGetCurrentTaskHandle())
+                ));
+
+                if (flag_) return;
+                flag_ = true;
+
+                log<LogLevel::Verbose>("Aborting in 6 seconds...");
+                ::vTaskDelay(3000 / portTICK_PERIOD_MS);
+                log<LogLevel::Debug>("Aborting now...");
             }
+            
+            catch (...) {}
 
-            else log<LogLevel::Error>("terminating on unknown error");
-
-            log<LogLevel::Verbose>("Aborting in 6 seconds...");
-            ::vTaskDelay(3000 / portTICK_PERIOD_MS);
-            log<LogLevel::Debug>("Aborting now...");
-        } catch (...) {}
-
-        ESP_ERROR_CHECK(ESP_FAIL);
-        ::std::abort();
+            ESP_ERROR_CHECK(ESP_FAIL);
+            ::std::abort();
+        };
     }
 
 } // namespace implementation_
 
     void implementation() noexcept(true) {
-        static auto protector_ = false;
-        if (protector_) try { throw ::std::logic_error{::fmt::format("repeated call of {}", __PRETTY_FUNCTION__)}; }
-        catch (...) { implementation_::terminate_handler(); }
-        protector_ = true;
-        ::std::set_terminate(implementation_::terminate_handler);
-        try { implementation_::invoke(); }
-        catch(...) { ::std::terminate(); }
+        ::std::set_terminate(implementation_::make_terminate_handler());
+        try { implementation_::invoke(); } catch(...) { ::std::terminate(); }
     }
 
 } // namespace p5::rswc

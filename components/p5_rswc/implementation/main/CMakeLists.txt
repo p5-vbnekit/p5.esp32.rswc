@@ -22,6 +22,7 @@ add_library("${_namespace}" STATIC
     "src/implementation.cxx" "include/p5/rswc/implementation.hpp"
     "src/main_task.cxx" "src/main_task.hpp"
     "src/event_loop.cxx" "src/event_loop.hpp"
+    "src/logged_action.cxx" "src/logged_action.hpp"
 )
 
 add_library("${_parent_namespace}::${_name}" ALIAS "${_namespace}")
