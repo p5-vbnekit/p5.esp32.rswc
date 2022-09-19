@@ -4,6 +4,7 @@ include("p5.esp32.rwsc.namespace")
 
 add_subdirectory("main")
 add_subdirectory("dirty")
+add_subdirectory("platform")
 add_subdirectory("romfs")
 add_subdirectory("log")
 add_subdirectory("common")

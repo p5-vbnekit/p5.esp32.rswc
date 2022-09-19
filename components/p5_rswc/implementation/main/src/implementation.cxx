@@ -16,10 +16,10 @@
 #include <p5/rswc/implementation_/log.hpp>
 #include <p5/rswc/implementation_/dirty.hpp>
 #include <p5/rswc/implementation_/common.hpp>
+#include <p5/rswc/implementation_/platform/logged_action.hpp>
+#include <p5/rswc/implementation_/platform/modules/event_loop.hpp>
 
 #include "main_task.hpp"
-#include "event_loop.hpp"
-#include "logged_action.hpp"
 
 #include <p5/rswc/implementation.hpp>
 
@@ -36,9 +36,9 @@ namespace implementation_ {
 
         auto task_ = [] () {
             auto &&task_ = [] () -> common::coro::Task<bool> {
-                logged_action::execute("initializing event loop", event_loop::initialize);
+                platform::logged_action::execute("initializing event loop", platform::modules::event_loop::initialize);
                 auto result_ = false;
-                try { co_await logged_action::wrap_awaitable("main task", main_task::make()); result_ = true; }
+                try { co_await platform::logged_action::wrap_awaitable("main task", main_task::make()); result_ = true; }
                 catch (...) { common::exception_handling::walk(::std::current_exception(), [] (auto &&exception) {
                     log<LogLevel::Warning>(common::exception_handling::details(::std::forward<decltype(exception)>(exception)));
                 }); }
@@ -54,13 +54,19 @@ namespace implementation_ {
                 ::std::thread{[mutex_, task_] () {
                     try {
                         ::std::unique_lock<::std::decay_t<decltype(*mutex_)>>{*mutex_};
-                        if (event_loop::instance()) logged_action::execute("deinitializing event loop", event_loop::deinitialize);
+                        platform::logged_action::execute("deinitializing event loop", platform::modules::event_loop::deinitialize);
                         if (! task_->result()) throw ::std::runtime_error{"main task failed"};
-                        for (auto counter_ = 3; 0 < counter_; counter_--) {
-                            log<LogLevel::Verbose>(::fmt::format("Restarting in {} seconds...", counter_));
-                            ::vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        if constexpr (true) {
+                            constexpr static auto const max_ = 3;
+                            for (auto counter_ = max_; 0 < counter_; counter_--) {
+                                log(
+                                    max_ > counter_ ? LogLevel::Debug : LogLevel::Info,
+                                    ::fmt::format("restarting in {} seconds...", counter_)
+                                );
+                                ::vTaskDelay(1000 / portTICK_PERIOD_MS);
+                            }
                         }
-                        log<LogLevel::Debug>("Restarting now ...");
+                        log<LogLevel::Info>("restarting now...");
                         ::esp_restart();
                     }
                     catch (...) { ::std::terminate(); }
@@ -95,11 +101,20 @@ namespace implementation_ {
                 if (flag_) return;
                 flag_ = true;
 
-                log<LogLevel::Verbose>("Aborting in 6 seconds...");
-                ::vTaskDelay(3000 / portTICK_PERIOD_MS);
-                log<LogLevel::Debug>("Aborting now...");
+                if constexpr (true) {
+                    constexpr static auto const max_ = 6;
+                    for (auto counter_ = max_; 0 < counter_; counter_--) {
+                        log(
+                            max_ > counter_ ? LogLevel::Debug : LogLevel::Info,
+                            ::fmt::format("aborting in {} seconds...", counter_)
+                        );
+                        ::vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    }
+                }
+
+                log<LogLevel::Info>("aborting now...");
             }
-            
+
             catch (...) {}
 
             ESP_ERROR_CHECK(ESP_FAIL);

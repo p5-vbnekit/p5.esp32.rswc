@@ -129,7 +129,7 @@ namespace skeleton {
         }
 
         inline operator bool () const noexcept(true) { return done(); }
-        
+
         inline auto operator co_await () noexcept(false) requires(::std::is_same_v<T, void>) {
             return co_await_<::std::is_const_v<::std::remove_reference_t<decltype(*this)>>>();
         }

@@ -6,7 +6,7 @@
 namespace p5::rswc::implementation_::common {
 namespace notifier {
 namespace subscription {
-    
+
     struct Class;
 
 } // namespace subscription

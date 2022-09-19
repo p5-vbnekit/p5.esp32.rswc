@@ -67,7 +67,7 @@ if "__main__" == __name__:
 p5_rswc_romfs_image_layout_begin:
                     """.strip(), file = _output, flush = True
                 )
-            
+
                 for _bytes in _split(value = _image): print(
                     ".byte {}".format(", ".join(["0x{:02x}".format(_byte) for _byte in _bytes])),
                     file = _output, flush = True
