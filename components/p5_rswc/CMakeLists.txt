@@ -4,17 +4,17 @@ idf_component_register(SRCS "src/p5_rswc.cxx" "include/p5_rswc.h" INCLUDE_DIRS "
 
 list(APPEND "CMAKE_MODULE_PATH" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include("p5.esp32.rwsc.romfs")
-include("p5.esp32.rwsc.namespace")
-include("p5.esp32.rwsc.sdkconfig_test")
+include("p5.rwsc.romfs")
+include("p5.rwsc.namespace")
+include("p5.rwsc.sdkconfig_test")
 
 unset("_namespace" CACHE)
 mark_as_advanced("_namespace")
-get_property("_namespace" DIRECTORY "." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_namespace" DIRECTORY "." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_sdkconfig_test_state" CACHE)
 mark_as_advanced("_sdkconfig_test_state")
-get_property("_sdkconfig_test_state" DIRECTORY "." PROPERTY "p5.esp32.rwsc.sdkconfig_test::state")
+get_property("_sdkconfig_test_state" DIRECTORY "." PROPERTY "p5.rwsc.sdkconfig_test::state")
 
 if("${_sdkconfig_test_state}")
     target_compile_definitions("${COMPONENT_LIB}" PRIVATE "SDKCONFIG_TEST_STATE=true")

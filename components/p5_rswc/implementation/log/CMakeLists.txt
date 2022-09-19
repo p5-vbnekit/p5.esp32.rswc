@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 
-include("p5.esp32.rwsc.namespace")
+include("p5.rwsc.namespace")
+include("p5.rwsc.recursive_sources")
 
 unset("_base_name" CACHE)
 mark_as_advanced("_base_name")
@@ -8,15 +9,15 @@ get_filename_component("_base_name" "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 
 unset("_namespace" CACHE)
 mark_as_advanced("_namespace")
-get_property("_namespace" DIRECTORY "." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_namespace" DIRECTORY "." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_parent_namespace" CACHE)
 mark_as_advanced("_parent_namespace")
-get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.rwsc.namespace::name")
 
-add_library("${_namespace}" STATIC
-    "src/log.cxx" "include/p5/rswc/implementation_/log.hpp"
-)
+add_library("${_namespace}" STATIC "src/log.cxx")
+
+cmake_language(CALL "p5.rwsc.recursive_sources::add" "${_namespace}" "include")
 
 add_library("${_parent_namespace}::${_base_name}" ALIAS "${_namespace}")
 

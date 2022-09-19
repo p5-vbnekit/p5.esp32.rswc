@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 
-include("p5.esp32.rwsc.namespace")
+include("p5.rwsc.namespace")
+include("p5.rwsc.recursive_sources")
 
 unset("_base_name" CACHE)
 mark_as_advanced("_base_name")
@@ -8,24 +9,22 @@ get_filename_component("_base_name" "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 
 unset("_namespace" CACHE)
 mark_as_advanced("_namespace")
-get_property("_namespace" DIRECTORY "." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_namespace" DIRECTORY "." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_parent_namespace" CACHE)
 mark_as_advanced("_parent_namespace")
-get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.rwsc.namespace::name")
 
 add_library("${_namespace}" STATIC
-    "src/common.cxx" "include/p5/rswc/implementation_/common.hpp"
-    "src/common.sdk.cxx" "include/p5/rswc/implementation_/common/sdk.hpp"
-    "src/common.coro.cxx" "include/p5/rswc/implementation_/common/coro.hpp"
-    "src/common.notifier.cxx" "include/p5/rswc/implementation_/common/notifier.hpp"
-    "src/common.exception_handling.cxx" "include/p5/rswc/implementation_/common/exception_handling.hpp"
-    "src/common.utils.cxx" "include/p5/rswc/implementation_/common/utils.hpp"
-    "include/p5/rswc/implementation_/common/coro/future.hpp"
-    "include/p5/rswc/implementation_/common/coro/task.hpp"
-    "include/p5/rswc/implementation_/common/coro/private_.hpp"
-    "include/p5/rswc/implementation_/common/notifier/fwd.hpp"
+    "src/common.cxx"
+    "src/common.sdk.cxx"
+    "src/common.coro.cxx"
+    "src/common.notifier.cxx"
+    "src/common.exception_handling.cxx"
+    "src/common.utils.cxx"
 )
+
+cmake_language(CALL "p5.rwsc.recursive_sources::add" "${_namespace}" "include")
 
 add_library("${_parent_namespace}::${_base_name}" ALIAS "${_namespace}")
 

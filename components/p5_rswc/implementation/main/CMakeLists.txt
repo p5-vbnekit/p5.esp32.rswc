@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.3)
 
-include("p5.esp32.rwsc.romfs")
-include("p5.esp32.rwsc.namespace")
+include("p5.rwsc.romfs")
+include("p5.rwsc.namespace")
+include("p5.rwsc.recursive_sources")
 
-cmake_language(CALL "p5.esp32.rwsc.romfs::add" "ssl/public.pem" "romfs/ssl/public.pem")
-cmake_language(CALL "p5.esp32.rwsc.romfs::add" "ssl/private.pem" "romfs/ssl/private.pem")
+cmake_language(CALL "p5.rwsc.romfs::add" "ssl/public.pem" "romfs/ssl/public.pem")
+cmake_language(CALL "p5.rwsc.romfs::add" "ssl/private.pem" "romfs/ssl/private.pem")
 
 unset("_base_name" CACHE)
 mark_as_advanced("_base_name")
@@ -12,17 +13,19 @@ get_filename_component("_base_name" "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 
 unset("_namespace" CACHE)
 mark_as_advanced("_namespace")
-get_property("_namespace" DIRECTORY "." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_namespace" DIRECTORY "." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_parent_namespace" CACHE)
 mark_as_advanced("_parent_namespace")
-get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.esp32.rwsc.namespace::name")
+get_property("_parent_namespace" DIRECTORY ".." PROPERTY "p5.rwsc.namespace::name")
 
 add_library("${_namespace}" STATIC
-    "src/implementation.cxx" "include/p5/rswc/implementation.hpp"
+    "src/implementation.cxx"
     "src/main_task.cxx" "src/main_task.hpp"
     "src/nvs_flash_keys.cxx" "src/nvs_flash_keys.hpp"
 )
+
+cmake_language(CALL "p5.rwsc.recursive_sources::add" "${_namespace}" "include")
 
 add_library("${_parent_namespace}::${_name}" ALIAS "${_namespace}")
 
