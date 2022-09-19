@@ -1,4 +1,5 @@
 #include <memory>
+#include <source_location>
 
 #include <esp_event.h>
 
@@ -30,26 +31,30 @@ namespace private_ {
     Interface::~Interface() = default;
 
     void initialize() noexcept(false) {
-        auto &platform_ = platform::instance();
-        auto &reference_ = platform_.acquire<Interface>();
-        try { reference_ = ::std::make_shared<private_::Class>(reference_); }
-        catch (...) { platform_.release<Interface>(reference_); throw; }
+        logged_action::execute(::std::source_location::current().function_name(), [] () {
+            auto &platform_ = platform::instance();
+            auto &reference_ = platform_.acquire<Interface>();
+            try { reference_ = ::std::make_shared<private_::Class>(reference_); }
+            catch (...) { platform_.release<Interface>(reference_); throw; }
+        });
     }
 
     void deinitialize() noexcept(false) {
-        auto &platform_ = platform::instance();
-        auto &reference_ = [&platform_] () -> decltype(auto) {
-            auto const base_ = platform_.get_module<Interface>();
-            if (! base_) throw ::std::logic_error{"module not initialized"};
-            auto const derived_ = ::std::dynamic_pointer_cast<private_::Class>(base_);
-            if (! derived_) throw ::std::logic_error{"incompatible module instance"};
-            return derived_->reference;
-        } ();
-        reference_.reset();
-        logged_action::execute("SDK ::esp_event_loop_delete_default", [] () {
-            common::sdk::check_or_throw(::esp_event_loop_delete_default());
+        logged_action::execute(::std::source_location::current().function_name(), [] () {
+            auto &platform_ = platform::instance();
+            auto &reference_ = [&platform_] () -> decltype(auto) {
+                auto const base_ = platform_.get_module<Interface>();
+                if (! base_) throw ::std::logic_error{"module not initialized"};
+                auto const derived_ = ::std::dynamic_pointer_cast<private_::Class>(base_);
+                if (! derived_) throw ::std::logic_error{"incompatible module instance"};
+                return derived_->reference;
+            } ();
+            reference_.reset();
+            logged_action::execute("SDK ::esp_event_loop_delete_default", [] () {
+                common::sdk::check_or_throw(::esp_event_loop_delete_default());
+            });
+            platform_.release<Interface>(reference_);
         });
-        platform_.release<Interface>(reference_);
     }
 
 } // namespace p5::rswc::implementation_::platform::modules::event_loop

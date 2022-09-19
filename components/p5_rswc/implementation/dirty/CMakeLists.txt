@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
 
-include("p5.rwsc.romfs")
 include("p5.rwsc.namespace")
 include("p5.rwsc.recursive_sources")
 
@@ -40,7 +39,7 @@ target_link_libraries("${_namespace}" PRIVATE
     "idf::esp_netif" "idf::esp_hw_support" "idf::esp_system" "idf::esp_common"
 )
 target_link_libraries("${_namespace}" PRIVATE
-    "${_parent_namespace}::romfs" "${_parent_namespace}::log" "${_parent_namespace}::common"
+    "${_parent_namespace}::log" "${_parent_namespace}::common"
 )
 
 target_include_directories("${_namespace}" PUBLIC "include")

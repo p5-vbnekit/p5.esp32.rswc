@@ -45,7 +45,8 @@ target_link_libraries("${_namespace}" PRIVATE "idf::nvs_flash" "idf::esp_hw_supp
 target_link_libraries("${_namespace}" PRIVATE "idf::esp_common" "idf::esp_system" "idf::esp_event")
 target_link_libraries("${_namespace}" PRIVATE
     "${_parent_namespace}::dirty"
-    "${_parent_namespace}::platform" "${_parent_namespace}::romfs"
+    "${_parent_namespace}::platform"
+    "${_parent_namespace}.platform.modules::romfs"
     "${_parent_namespace}.platform.modules::event_loop"
     "${_parent_namespace}::log" "${_parent_namespace}::common"
 )

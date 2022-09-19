@@ -16,9 +16,9 @@
 #include <esp_random.h>
 
 #include <p5/rswc/implementation_/platform.hpp>
-#include <p5/rswc/implementation_/romfs.hpp>
 #include <p5/rswc/implementation_/log.hpp>
 #include <p5/rswc/implementation_/common.hpp>
+#include <p5/rswc/implementation_/platform/modules/romfs.hpp>
 #include <p5/rswc/implementation_/platform/modules/event_loop.hpp>
 
 #include "nvs_flash_keys.hpp"
@@ -51,9 +51,11 @@ namespace private_::sdk {
                 static_cast<void const *>(::xTaskGetCurrentTaskHandle())
             )); });
 
+            auto const &platform_ = platform::instance();
+
             if constexpr (true) {
-                auto event_loop_ = platform::instance().get_module<platform::modules::EventLoop>();
-                if (! event_loop_) throw ::std::logic_error{"event loop pointer is null"};
+                auto event_loop_ = platform_.get_module<platform::modules::EventLoop>();
+                if (! event_loop_) throw ::std::logic_error{"platform.event_loop pointer is null"};
 
                 log<LogLevel::Info>(::fmt::format(
                     "main task [thread = {}] started, event_loop = [{}, {}]",
@@ -105,19 +107,24 @@ namespace private_::sdk {
                 ));
             }
 
-            platform::logged_action::execute("initializing p5_rswc::romfs module", [] () { romfs::initialize(); });
-            finally_([] () { platform::logged_action::execute("deinitializing p5_rswc::romfs module", [] () { romfs::deinitialize(); }); });
-
             if constexpr (true) {
-                constexpr static auto const * const public_certificate_path_ = "ssl/public.pem";
-                log<LogLevel::Info>(::fmt::format(
-                    "public certificate \"{}\" size = {}", public_certificate_path_, romfs::get(public_certificate_path_).size()
-                ));
+                platform::modules::romfs::initialize();
+                finally_(platform::modules::romfs::deinitialize);
 
-                constexpr static auto const * const private_certificate_path_ = "ssl/private.pem";
-                log<LogLevel::Info>(::fmt::format(
-                    "private certificate \"{}\" size = {}", private_certificate_path_, romfs::get(private_certificate_path_).size()
-                ));
+                auto const romfs_ = platform_.get_module<platform::modules::RomFs>();
+                if (! romfs_) throw ::std::logic_error{"platform.romfs pointer is null"};
+
+                if constexpr (true) {
+                    constexpr static auto const * const public_certificate_path_ = "ssl/public.pem";
+                    log<LogLevel::Info>(::fmt::format(
+                        "public certificate \"{}\" size = {}", public_certificate_path_, romfs_->get(public_certificate_path_).size()
+                    ));
+
+                    constexpr static auto const * const private_certificate_path_ = "ssl/private.pem";
+                    log<LogLevel::Info>(::fmt::format(
+                        "private certificate \"{}\" size = {}", private_certificate_path_, romfs_->get(private_certificate_path_).size()
+                    ));
+                }
             }
 
             auto const nvs_handle_ = platform::logged_action::execute("initializing non-volatile storage", [&finally_] () {

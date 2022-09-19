@@ -41,8 +41,6 @@ namespace platform {
         Class & operator = (Class const &) = delete;
     };
 
-    inline static auto & instance() noexcept(false) { return Class::instance(); }
-
 
     template <class Interface> inline constexpr auto Class::make_key_() noexcept(true) {
         static_assert(! ::std::is_reference_v<Interface>);
@@ -56,7 +54,7 @@ namespace platform {
     }
 
     template <class Interface> inline auto Class::get_module() const noexcept(true) {
-        auto &&pointer_ = const_cast<::std::decay_t<decltype(*this)>>(this).get_module<Interface>();
+        auto &&pointer_ = const_cast<::std::decay_t<decltype(*this)> &>(*this).get_module<Interface>();
         if constexpr (::std::is_const_v<Interface>) return ::std::forward<decltype(pointer_)>(pointer_);
         else return ::std::static_pointer_cast<Interface const>(::std::forward<decltype(pointer_)>(pointer_));
     }

@@ -13,7 +13,7 @@ get_property("_namespace" DIRECTORY "." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_root_namespace" CACHE)
 mark_as_advanced("_root_namespace")
-get_property("_root_namespace" DIRECTORY "../../.." PROPERTY "p5.rwsc.namespace::name")
+get_property("_root_namespace" DIRECTORY "../../../.." PROPERTY "p5.rwsc.namespace::name")
 
 unset("_parent_namespace" CACHE)
 mark_as_advanced("_parent_namespace")
@@ -38,7 +38,7 @@ target_link_options("${_namespace}" PRIVATE "-Wl,-no-undefined")
 
 target_link_libraries("${_namespace}" PRIVATE "fmt::fmt")
 target_link_libraries("${_namespace}" PRIVATE "idf::esp_event")
-target_link_libraries("${_namespace}" PUBLIC "${_root_namespace}::platform")
-target_link_libraries("${_namespace}" PRIVATE "${_root_namespace}::common")
+target_link_libraries("${_namespace}" PUBLIC "${_root_namespace}.implementation::platform")
+target_link_libraries("${_namespace}" PRIVATE "${_root_namespace}.implementation::common")
 
 target_include_directories("${_namespace}" PUBLIC "include")

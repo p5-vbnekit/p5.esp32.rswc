@@ -26,7 +26,6 @@
 #include <sdkconfig.h>
 
 #include <p5/rswc/implementation_/log.hpp>
-#include <p5/rswc/implementation_/romfs.hpp>
 #include <p5/rswc/implementation_/common.hpp>
 
 #include <p5/rswc/implementation_/dirty.hpp>
@@ -65,23 +64,6 @@ namespace private_ {
         auto &&exceptions_ = static_cast<::std::size_t>(0);
         common::utils::with_finally(
             [] (auto &&finally) {
-                private_::action("initializing p5_rswc::romfs module", [] () { romfs::initialize(); });
-                finally([] () { private_::action(
-                    "deinitializing p5_rswc::romfs module", [] () { romfs::deinitialize(); }
-                ); });
-
-                if constexpr (true) {
-                    constexpr static auto const * const public_certificate_path_ = "ssl/public.pem";
-                    log<LogLevel::Info>(::fmt::format(
-                        "public certificate \"{}\" size = {}", public_certificate_path_, romfs::get(public_certificate_path_).size()
-                    ));
-
-                    constexpr static auto const * const private_certificate_path_ = "ssl/private.pem";
-                    log<LogLevel::Info>(::fmt::format(
-                        "private certificate \"{}\" size = {}", private_certificate_path_, romfs::get(private_certificate_path_).size()
-                    ));
-                }
-
                 [[maybe_unused]] static ::httpd_handle_t http_server_handle_ = NULL;
 
                 auto const &&nvs_handle_ = private_::action("initializing non-volatile storage", [&finally] () {

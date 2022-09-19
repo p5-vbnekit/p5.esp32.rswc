@@ -36,7 +36,7 @@ namespace implementation_ {
 
         auto task_ = [] () {
             auto &&task_ = [] () -> common::coro::Task<bool> {
-                platform::logged_action::execute("initializing event loop", platform::modules::event_loop::initialize);
+                platform::modules::event_loop::initialize();
                 auto result_ = false;
                 try { co_await platform::logged_action::wrap_awaitable("main task", main_task::make()); result_ = true; }
                 catch (...) { common::exception_handling::walk(::std::current_exception(), [] (auto &&exception) {
@@ -54,7 +54,7 @@ namespace implementation_ {
                 ::std::thread{[mutex_, task_] () {
                     try {
                         ::std::unique_lock<::std::decay_t<decltype(*mutex_)>>{*mutex_};
-                        platform::logged_action::execute("deinitializing event loop", platform::modules::event_loop::deinitialize);
+                        platform::modules::event_loop::deinitialize();
                         if (! task_->result()) throw ::std::runtime_error{"main task failed"};
                         if constexpr (true) {
                             constexpr static auto const max_ = 3;
